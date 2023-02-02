@@ -122,18 +122,22 @@ function getSingleData(dataParam) {
                 } else if (item.browser === 'Other') {
                   return false
                 } else {
-                  return item.percent >= 1
+                  return true
+                  // return item.percent >= 1
                 }
               } else {
                 if (item.browser === 'Other') {
                   return false
                 } else {
-                  return item.percent >= 1
+                  return true
+                  // return item.percent >= 1
                 }
               }
             })
-            tmpArr3.sort((a, b) => b.percent - a.percent);
-            const result = tmpArr3.map(item => {
+            const other = tmpArr2.filter(item => item.browser === 'Other') || [];
+            tmpArr3.sort((a, b) => b.percent - a.percent)
+            const tmpArr4 = tmpArr3.concat(other);
+            const result = tmpArr4.map(item => {
               return item.browser + ' ' + (item.percent).toFixed(2) + '%'
             }).join(', ')
             resolve({
