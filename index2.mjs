@@ -38,7 +38,7 @@ const dataParams = [
   {
     title: 'China Mobile',
     url: `https://gs.statcounter.com/browser-market-share/mobile-tablet/china/chart.php?bar=1&device=Mobile%20%26%20Tablet&device_hidden=mobile%2Btablet&multi-device=true&statType_hidden=browser&region_hidden=CN&granularity=monthly&statType=Browser&region=China&fromInt=${year}${month}&toInt=${year}${month}&fromMonthYear=${year}-${month}&toMonthYear=${year}-${month}&csv=1`,
-    fileName: `China-PC-${year}${month}`,
+    fileName: `China-Mobile-${year}${month}`,
     type: 'mobile'
   },
   {

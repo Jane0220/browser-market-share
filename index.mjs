@@ -37,7 +37,7 @@ const dataParams = [
   {
     title: 'China Mobile',
     url: `https://gs.statcounter.com/browser-market-share/mobile-tablet/china/chart.php?bar=1&device=Mobile%20%26%20Tablet&device_hidden=mobile%2Btablet&multi-device=true&statType_hidden=browser&region_hidden=CN&granularity=monthly&statType=Browser&region=China&fromInt=${year}${month}&toInt=${year}${month}&fromMonthYear=${year}-${month}&toMonthYear=${year}-${month}&csv=1`,
-    fileName: `China-PC-${year}${month}`,
+    fileName: `China-Mobile-${year}${month}`,
     type: 'mobile'
   },
   {
@@ -53,6 +53,82 @@ const dataParams = [
     type: 'mobile'
   }
 ]
+
+function handleData(originDataStr, dataParam) {
+  const originDataArr = originDataStr.split('\n').filter((item, index) => item && index > 0)
+  const tmpArr1 = originDataArr.map(item => {
+    const tmpArr11 = item.split(',');
+    const tmpStr11 = tmpArr11[0].replace(/\"/g, '');
+    const tmpArr12 = tmpStr11.split(' ')
+    const versionStrTmp = tmpArr12[tmpArr12.length - 1]
+    const version = /\d+\.*/.test(versionStrTmp) ? versionStrTmp : '';
+    const percent = Number(tmpArr11[1]);
+    return {
+      browser: tmpStr11,
+      browserName: tmpStr11.substring(0, tmpStr11.length - version.length),
+      browserVersion: version,
+      percent: percent
+    }
+  })
+  const tmpArr2 = [];
+  tmpArr1.forEach(item => {
+    let browserName = item.browserName.replace(/\s$/g, '')
+    if (dataParam.type === 'pc') {
+      if (/^Edge/.test(item.browserName)) {
+        if (item.browserVersion === '79+') {
+          browserName = 'Edge 79+'
+        } else {
+          browserName = 'Edge 79-'
+        }
+      } else if (/^IE/.test(item.browserName)) {
+        browserName = item.browser
+      }
+    }
+    let compareItem = tmpArr2.find(ele => ele.browser === browserName)
+    if (compareItem) {
+      compareItem.percent = compareItem.percent + item.percent;
+    } else {
+      compareItem = {
+        browser: browserName,
+        percent: item.percent
+      }
+      tmpArr2.push(compareItem);
+    }
+  })
+  const tmpArr3 = tmpArr2.filter(item => {
+    if (dataParam.type === 'pc') {
+      if (/^Edge/.test(item.browser) || /^IE/.test(item.browser)) {
+        return true
+      } else if (item.browser === 'Other') {
+        return false
+      } else {
+        return true
+        // return item.percent >= 1
+      }
+    } else {
+      if (item.browser === 'Other') {
+        return false
+      } else {
+        return true
+        // return item.percent >= 1
+      }
+    }
+  })
+  const other = tmpArr2.filter(item => item.browser === 'Other') || [];
+  tmpArr3.sort((a, b) => b.percent - a.percent)
+  const tmpArr4 = tmpArr3.concat(other);
+  const result = tmpArr4.map(item => {
+    return item.browser + ' ' + (item.percent).toFixed(2) + '%'
+  }).join(', ')
+  // console.log('\n\n\n-----------log:', dataParam, originDataStr, originDataArr, tmpArr1, '\n\n\n')
+  return {
+    result: 'success',
+    data: {
+      ...dataParam,
+      result
+    }
+  }
+}
 
 function getSingleData(dataParam) {
   return new Promise((resolve) => {
@@ -75,78 +151,7 @@ function getSingleData(dataParam) {
         fs.readFile(filePath, 'utf-8', function(err, originDataStr) {
           if (!err) {
             // console.log('read file success: ', originDataStr)
-            const originDataArr = originDataStr.split('\n').filter((item, index) => item && index > 0)
-            const tmpArr1 = originDataArr.map(item => {
-              const tmpArr11 = item.split(',');
-              const tmpStr11 = tmpArr11[0].replace(/\"/g, '');
-              const tmpArr12 = tmpStr11.split(' ')
-              const versionStrTmp = tmpArr12[tmpArr12.length - 1]
-              const version = /\d+\.*/.test(versionStrTmp) ? versionStrTmp : '';
-              const percent = Number(tmpArr11[1]);
-              return {
-                browser: tmpStr11,
-                browserName: tmpStr11.substring(0, tmpStr11.length - version.length),
-                browserVersion: version,
-                percent: percent
-              }
-            })
-            const tmpArr2 = [];
-            tmpArr1.forEach(item => {
-              let browserName = item.browserName.replace(/\s$/g, '')
-              if (dataParam.type === 'pc') {
-                if (/^Edge/.test(item.browserName)) {
-                  if (item.browserVersion === '79+') {
-                    browserName = 'Edge 79+'
-                  } else {
-                    browserName = 'Edge 79-'
-                  }
-                } else if (/^IE/.test(item.browserName)) {
-                  browserName = item.browser
-                }
-              }
-              let compareItem = tmpArr2.find(ele => ele.browser === browserName)
-              if (compareItem) {
-                compareItem.percent = compareItem.percent + item.percent;
-              } else {
-                compareItem = {
-                  browser: browserName,
-                  percent: item.percent
-                }
-                tmpArr2.push(compareItem);
-              }
-            })
-            const tmpArr3 = tmpArr2.filter(item => {
-              if (dataParam.type === 'pc') {
-                if (/^Edge/.test(item.browser) || /^IE/.test(item.browser)) {
-                  return true
-                } else if (item.browser === 'Other') {
-                  return false
-                } else {
-                  return true
-                  // return item.percent >= 1
-                }
-              } else {
-                if (item.browser === 'Other') {
-                  return false
-                } else {
-                  return true
-                  // return item.percent >= 1
-                }
-              }
-            })
-            const other = tmpArr2.filter(item => item.browser === 'Other') || [];
-            tmpArr3.sort((a, b) => b.percent - a.percent)
-            const tmpArr4 = tmpArr3.concat(other);
-            const result = tmpArr4.map(item => {
-              return item.browser + ' ' + (item.percent).toFixed(2) + '%'
-            }).join(', ')
-            resolve({
-              result: 'success',
-              data: {
-                ...dataParam,
-                result
-              }
-            })
+            resolve(handleData(originDataStr, dataParam))
           } else {
             resolve({
               result: 'read file error',
